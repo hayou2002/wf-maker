@@ -29,6 +29,7 @@ wf-<名字>/
     playbook.md            阶段细节,先大纲后填充
     habits.md              你的注意事项与踩坑,可持续增长
     environment.md         环境清单,由工具生成
+    sops/                  可选:特定场景的细化 SOP
   sources.json             机器读的依赖登记:来源、路径、哈希、用在哪一步
   vendor/<skill>/          没有可靠来源时才内置的快照
 ```
@@ -41,6 +42,7 @@ wf-<名字>/
 py -3 scripts/wf.py roots                 # 探测技能目录
 py -3 scripts/wf.py scan --match "设计 图标"   # 按关键词粗筛本机技能
 py -3 scripts/wf.py new wf-xxx --title "标题"
+py -3 scripts/wf.py new wf-xxx --with-sops   # 需要场景 SOP 时才加
 py -3 scripts/wf.py link wf-xxx oil-plan --uses "阶段 2:定档"
 py -3 scripts/wf.py bundle wf-xxx 自建技能 --uses "阶段 3"
 py -3 scripts/wf.py check                 # 漂移检查 + 大纲缺项

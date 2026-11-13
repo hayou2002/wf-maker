@@ -3,7 +3,7 @@ name: wf-maker
 description: "把日常反复出现的工作做成 wf- 开头的工作流 Skill,并负责它的更新与体检。遇到这类事先走本技能:出大纲 → 停一下等确认 → 列相关技能 → 定融合方式 → 生成骨架并登记。触发场景:用户说「帮我创建成一个工作流 skill」「把这几步串成一套流程」「整理成工作流」「更新或检查某个工作流」「这个技能能不能删或改名」,或直接打 wf-。不用于执行工作流本身的业务;单个 Skill 的创建与整改交给 oil-skill-creator。"
 license: MIT
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 # wf-maker
@@ -30,6 +30,16 @@ metadata:
 | 完整 | 跨多个技能、有分支、要长期用或交给别人用 | 走完整五步：大纲 → 候选 → 融合表 → 生成登记 → 自检收尾 |
 
 拿不准先按轻量走；用起来发现步骤在长、分支在变多，再升到完整档。判断依据见 [fusion-rules.md](references/fusion-rules.md)。
+
+## 场景 SOP 是可选的细化
+
+通用 SOP 就是工作流主体：`SKILL.md` 的顺序、判断和 `playbook.md` 的详细步骤。只有某个特定场景需要偏离通用流程或补更多细节时，才加一份细化 SOP。
+
+- 细化 SOP 放工作流 references 下的 `sops` 目录，一份一个场景，配 `index.md` 和 `_template.md`；不是每份工作流都要。
+- 用户点名场景才加；没说就不加，避免干扰通用流程。
+- 单独技能也可以按同样结构放 SOP，放在该技能自己的 `sops` 目录下。
+- SOP 不是技能依赖：不进 `sources.json`，不用 `link` 或 `bundle`。
+- 新建工作流时加 `--with-sops` 生成骨架；已有工作流或技能手动建目录即可。
 
 ## 脚手架五步
 
@@ -119,6 +129,6 @@ py -3 <wf-maker>/scripts/wf.py validate wf-名字
 
 ## 资源导航
 
-- [workflow-format.md](references/workflow-format.md)：文件结构、`sources.json` 字段、触发描述、写给不懂的人看、信息架构与版本规则。
+- [workflow-format.md](references/workflow-format.md)：文件结构、场景 SOP、`sources.json` 字段、触发描述、写给不懂的人看、信息架构与版本规则。
 - [fusion-rules.md](references/fusion-rules.md)：定档判据、大纲怎么提炼、候选怎么筛、融合方式怎么定、动手前核实清单。
 - [maintenance.md](references/maintenance.md)：改工作流（快照与升版）、更新、隐藏、恢复、删除的完整流程与授权边界。

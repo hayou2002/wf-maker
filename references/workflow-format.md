@@ -11,6 +11,10 @@ wf-<名字>/
     playbook.md                # 每个阶段的详细步骤，先大纲后填充
     habits.md                  # 个人注意事项与踩坑，可增长
     environment.md             # 环境清单，由 wf.py env 生成
+    sops/                      # 可选：特定场景的细化 SOP
+      index.md                 # 场景索引，没有 SOP 时不用建这个目录
+      _template.md             # 新增 SOP 的骨架
+      <场景>.md                # 一份 SOP 只写一个场景
   sources.json                 # 机器读的引用登记
   vendor/<技能名>/             # 内置副本，只有没上游来源的技能才放这里
 ```
@@ -36,6 +40,17 @@ wf-<名字>/
 外部可见变化优先于内部结构：写「推完能在仓库页面看到哪些提交」，不写「调整了推送逻辑」。
 
 专业名词（worktree、tag、Release、PR、分支）第一次出现时，在 `playbook.md` 顶部配一节「名词速查」，一句话一个，用日常语言解释。用户看不懂的词，等于没写。
+
+## 场景 SOP（可选）
+
+通用 SOP 就是工作流主体：`SKILL.md` 加 `playbook.md`。`references/sops/` 只放特定场景的细化，不要重复主体流程。
+
+- 只在用户点名场景时新增；没说就不加，避免让主流程分叉。
+- 一份 SOP 只写一个场景，开头写清「所属主体」和「细化哪一步」。
+- `index.md` 列出场景、细化范围和入口；用 `_template.md` 统一骨架。
+- SOP 多了就在 `SKILL.md` 或 README 里提一句入口，方便按需打开。
+- 单独技能也能用同样结构，放在该技能自己的 `references/sops/` 下。
+- SOP 不进 `sources.json`，不是技能依赖，也不参与漂移比对。
 
 ## 信息架构
 

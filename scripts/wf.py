@@ -552,9 +552,15 @@ def cmd_new(args) -> int:
         raise SystemExit(f"{target} 已存在，先换名字或手动处理。")
     title = args.title or slug_title(name)
     (target / "references").mkdir(parents=True)
-    (target / "SKILL.md").write_text(new_skill_md(name, title), encoding="utf-8")
+    with_sops = bool(getattr(args, "with_sops", False))
+    (target / "SKILL.md").write_text(new_skill_md(name, title, with_sops), encoding="utf-8")
     (target / "references" / "playbook.md").write_text(new_playbook(title), encoding="utf-8")
     (target / "references" / "habits.md").write_text(new_habits(title), encoding="utf-8")
+    if with_sops:
+        sops = target / "references" / "sops"
+        sops.mkdir(parents=True)
+        (sops / "index.md").write_text(new_sops_index(title), encoding="utf-8")
+        (sops / "_template.md").write_text(new_sops_template(), encoding="utf-8")
     data = {
         "workflow": name,
         "title": title,
@@ -566,15 +572,31 @@ def cmd_new(args) -> int:
     write_sources(target, data)
     refresh_env(target, quiet=True)
     if args.json:
-        print(json.dumps({"path": str(target), "status": "draft"}, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {"path": str(target), "status": "draft", "sops": with_sops},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
     print(f"已创建 {target}")
     print("下一步：先补 references/playbook.md 的 SOP 大纲，再登记技能依赖。")
+    if with_sops:
+        print("场景 SOP 骨架在 references/sops/；默认不加具体场景，用户点名后再补。")
     print(f"新技能会在下一个会话出现在技能列表里。")
     return 0
 
 
-def new_skill_md(name: str, title: str) -> str:
+def new_skill_md(name: str, title: str, with_sops: bool = False) -> str:
+    sops = (
+        "\n## 场景 SOP\n\n"
+        "主体的通用流程在本页和 [playbook.md](references/playbook.md)；"
+        "只有特定场景需要细化时，才读 [sops/index.md](references/sops/index.md)。"
+        "默认不加具体 SOP，用户点名场景后再补。\n"
+        if with_sops
+        else ""
+    )
     return f"""---
 name: {name}
 description: "个人工作流（大纲态，待补充）：{title}。触发场景：TODO。不要用于 TODO。"
@@ -604,7 +626,7 @@ TODO：写清哪些场景整段按这里走，以及单个细分任务直接找�
 ## 依赖与环境
 
 见 [environment.md](references/environment.md)，由 wf-maker 生成。
-
+{sops}
 ## 详细步骤
 
 需要具体命令、参数和判据时读 [playbook.md](references/playbook.md)。
@@ -622,6 +644,75 @@ TODO：这一段的目标。
 
 - 步骤：
 - 判据：
+"""
+
+
+def new_sops_index(title: str) -> str:
+    return f"""# {title} · 场景 SOP
+
+通用流程在 `SKILL.md` 和 `playbook.md`；这里只放特定场景的细化，不要重复主体流程。
+
+| 场景 | 细化哪一步 | 入口 | 状态 |
+| --- | --- | --- | --- |
+| 还没有具体场景 | 用户明确指定场景时再补 | — | — |
+
+要新增一份 SOP：复制 [_template.md](_template.md)，按八节填完，再在表里加一行。
+"""
+
+
+def new_sops_template() -> str:
+    return """# SOP · <场景>
+
+> 所属主体：<工作流或技能名> 的通用流程
+> 细化范围：<细化哪一步或哪几节>
+> 状态：待验证
+> 入口：`references/sops/<文件名>.md`
+
+## 1. 适用与不适用
+
+- 适用：
+- 不适用：
+
+## 2. 输入与输出
+
+- 输入：
+- 默认输出：
+- 目标位置：
+
+## 3. 分档
+
+| 档 | 条件 | 行为 |
+| --- | --- | --- |
+| L1 |  |  |
+| L2 |  |  |
+| L3 |  |  |
+
+## 4. 步骤
+
+1. 定目标：
+2. 读输入：
+3. 做第一版：
+4. 写入：
+5. 回读：
+
+## 5. 停机点
+
+- 
+
+## 6. 成稿模板
+
+```markdown
+<可直接套用的模板>
+```
+
+## 7. 自检
+
+- 
+
+## 8. 失败与回退
+
+- 目标找不到：
+- 写入失败：
 """
 
 
@@ -961,6 +1052,7 @@ def cmd_check(args) -> int:
                 notes.append("[大纲] SKILL.md 里还没写清触发场景与边界。")
             if not (wf_dir / "references" / "environment.md").is_file():
                 notes.append("[大纲] 还没有环境清单，跑 `wf.py env`。")
+        notes.extend(check_sops(wf_dir))
         reports.append((data["workflow"], notes))
     if args.json:
         print(json.dumps({"reports": [{"workflow": n, "notes": x} for n, x in reports], "blocking": blocking}, ensure_ascii=False, indent=2))
@@ -984,6 +1076,34 @@ def describe_diff(changed: list[str], removed: list[str], added: list[str]) -> s
     if removed:
         parts.append("删除 " + ", ".join(removed[:4]))
     return "；".join(parts) if parts else "文件集合不同"
+
+
+SOP_LINK_RE = re.compile(r"\]\(([^)]+\.md)\)")
+
+
+def check_sops(wf_dir: Path) -> list[str]:
+    sops = wf_dir / "references" / "sops"
+    if not sops.is_dir():
+        return []
+    notes: list[str] = []
+    index = sops / "index.md"
+    if not index.is_file():
+        notes.append("[注意] references/sops 存在但没有 index.md，补一个场景索引。")
+    else:
+        text = read_text(index) or ""
+        for link in SOP_LINK_RE.findall(text):
+            if link.startswith(("http:", "https:", "#")):
+                continue
+            if not (sops / link).resolve().exists():
+                notes.append(f"[注意] SOP 索引指向不存在的文件：{link}")
+        if "_template.md" not in text and "模板" not in text:
+            notes.append("[提示] SOP 索引没提模板，新增场景容易各写各的。")
+    if not (sops / "_template.md").is_file():
+        notes.append("[提示] 没有 _template.md，新增场景 SOP 会缺统一骨架。")
+    skill = read_text(wf_dir / "SKILL.md") or ""
+    if "sops/index.md" not in skill and "SOP" not in skill:
+        notes.append("[提示] SKILL.md 没提场景 SOP，SOP 多了会找不到入口。")
+    return notes
 
 
 def cmd_links(args) -> int:
@@ -1191,6 +1311,11 @@ def build_parser() -> argparse.ArgumentParser:
     new = sub.add_parser("new", help="新建工作流骨架（默认 draft）")
     new.add_argument("name")
     new.add_argument("--title", help="工作流标题")
+    new.add_argument(
+        "--with-sops",
+        action="store_true",
+        help="额外生成 references/sops/ 骨架；默认不加，用户点名场景后才需要",
+    )
     new.set_defaults(func=cmd_new)
 
     link = sub.add_parser("link", help="登记一个引用")
