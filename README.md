@@ -30,6 +30,7 @@ wf-<名字>/
     habits.md              你的注意事项与踩坑,可持续增长
     environment.md         环境清单,由工具生成
     sops/                  可选:特定场景的细化 SOP
+  scripts/                 确定、重复、可验证的步骤(结论+退出码,写法见 workflow-format.md)
   sources.json             机器读的依赖登记:来源、路径、哈希、用在哪一步
   vendor/<skill>/          没有可靠来源时才内置的快照
 ```

@@ -3,7 +3,7 @@ name: wf-maker
 description: "把日常反复出现的工作做成 wf- 开头的工作流 Skill,并负责它的更新与体检。遇到这类事先走本技能:出大纲 → 停一下等确认 → 列相关技能 → 定融合方式 → 生成骨架并登记。触发场景:用户说「帮我创建成一个工作流 skill」「把这几步串成一套流程」「整理成工作流」「更新或检查某个工作流」「这个技能能不能删或改名」,或直接打 wf-。不用于执行工作流本身的业务;单个 Skill 的创建与整改交给 oil-skill-creator。"
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.6.0"
 ---
 
 # wf-maker
@@ -45,13 +45,13 @@ metadata:
 
 ### 1. 先出大纲
 
-从用户描述、相关技能和项目的 `AGENTS.md` 里提炼 5–9 个阶段。每阶段只写三样：目标、产出、大概用哪个技能。定不下来的位置先留待办标记，具体写哪个标记见 [workflow-format.md](references/workflow-format.md)。
+从用户描述、相关技能和项目的 `AGENTS.md` 里提炼 5–9 个阶段。每阶段只写三样：目标、产出、大概用哪个技能。定不下来的位置先留待办标记，具体写哪个标记见 [workflow-format.md](references/workflow-format.md)；提炼顺序与判据见 [fusion-rules.md](references/fusion-rules.md)。
 
 - **先对话，再落笔。** 按 oil-plan 的做法：用两三个问题把这件事的起止、有几种情况、谁在用问清楚；用户答不上来就先按轻量档写一版给他改，不要替他定死流程。
 - 大纲是给用户看的，不是给自己看的：他用日常话能读完、能指出「这里不对」才算合格。
 - 大纲写进工作流自己的 `playbook.md`（放在它的 references 目录下）；工作流的 `SKILL.md` 只留阶段表。
 - 不写具体命令、参数和判据，那是填充阶段的事。
-- 用日常语言写。出现专业名词（worktree、Release、tag 这类）就在 playbook 里配一小节解释，别让用户自己猜。
+- 用日常语言写。出现专业名词（worktree、Release、tag 这类）就在 playbook 里配一小节解释，别让用户自己猜。规则句同时按「AI 读准」写：一条一个动作、量化词写死、引用不复述（细则见 [workflow-format.md](references/workflow-format.md) 的「写给 AI 读准」）。
 - 动手前先核实：提到的技能真的装了、路径真的存在、要写进流程的命令先跑一次；没跑过的标成「未验证」。
 - 写完停下，等用户确认大纲再往下走。
 
@@ -93,7 +93,7 @@ py -3 <wf-maker>/scripts/wf.py link wf-名字 <技能> --provider <插件名> --
 
 - `link` 和 `bundle` 会记下当时的哈希，写进 `sources.json`，并刷新工作流的环境清单。
 - 一次只登记一项，登记完念一句结果，别批量做完才汇报。
-- 字段含义和写作要求见 [workflow-format.md](references/workflow-format.md)。
+- 字段含义和写作要求见 [workflow-format.md](references/workflow-format.md)；确定、重复、可验证的步骤按它的「脚本与检测器」落成 `scripts/` 里的脚本，不要写成长篇文字步骤。
 
 ### 5. 自检收尾
 
@@ -110,6 +110,7 @@ py -3 <wf-maker>/scripts/wf.py validate wf-名字
 
 - **漂移**：`check` 报出哪个技能变了、变了哪些文件。你要做的是读一遍变更，问用户「工作流里哪几条要跟着改」，不要自己改。
 - **改工作流**：先 `snapshot` 留一份旧版（改坏了能对照），改完 `bump` 升版本号，再跑 `check` 和 `validate` 复验。
+- **脚本过时**：工作流里的脚本运行时报「疑似过时」或结果明显对不上时，先分类——世界出问题按剧本处理、环境缺件补环境，只有旧假设失效才改脚本；流程见 [maintenance.md](references/maintenance.md) 的「脚本过时了怎么改」。
 - **隐藏**：先 `links` 看有没有工作流在用，再 `hide <技能> --agent <宿主>`；不带 `--apply` 只打印命令。
 - **反查**：`links <技能>` 看它被哪些工作流引用，回答「删了会不会影响协作」。
 - **路径**：技能被隐藏后仍然可用，工作流里登记的路径由 `show <工作流>` 解析。
@@ -129,6 +130,6 @@ py -3 <wf-maker>/scripts/wf.py validate wf-名字
 
 ## 资源导航
 
-- [workflow-format.md](references/workflow-format.md)：文件结构、场景 SOP、`sources.json` 字段、触发描述、写给不懂的人看、信息架构与版本规则。
+- [workflow-format.md](references/workflow-format.md)：文件结构、场景 SOP、`sources.json` 字段、触发描述、写给不懂的人看、写给 AI 读准、脚本与检测器、信息架构与版本规则。
 - [fusion-rules.md](references/fusion-rules.md)：定档判据、大纲怎么提炼、候选怎么筛、融合方式怎么定、动手前核实清单。
-- [maintenance.md](references/maintenance.md)：改工作流（快照与升版）、更新、隐藏、恢复、删除的完整流程与授权边界。
+- [maintenance.md](references/maintenance.md)：改工作流（快照与升版）、脚本过时、更新、隐藏、恢复、删除的完整流程与授权边界。
