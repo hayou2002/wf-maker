@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" role="img" aria-label="wf-maker:把日常流程做成可复用的工作流 Skill">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">wf-maker 工作流示意</title>
+  <desc id="hero-desc">五步脚手架把日常流程做成可复用的工作流 Skill;确定、重复的步骤收进 scripts/,运行只回读一行结论。</desc>
   <rect width="1200" height="340" rx="24" fill="#FCFAF4"/>
   <rect x="1" y="1" width="1198" height="338" rx="23" fill="none" stroke="#EDE3D2"/>
   <rect x="72" y="56" width="196" height="30" rx="15" fill="#F6E7D2"/>
@@ -26,11 +28,12 @@
     <path d="M932 140 L941 140" stroke="#C9B394" stroke-width="2"/>
     <path d="M1033 140 L1042 140" stroke="#C9B394" stroke-width="2"/>
 
-    <path d="M1088 176 L1088 200" stroke="#C9B394" stroke-width="2"/>
-    <path d="M1082 194 L1088 202 L1094 194" fill="none" stroke="#C9B394" stroke-width="2" stroke-linecap="round"/>
+    <path d="M1088 176 L1088 196" stroke="#C9B394" stroke-width="2"/>
+    <path d="M1082 190 L1088 198 L1094 190" fill="none" stroke="#C9B394" stroke-width="2" stroke-linecap="round"/>
 
-    <rect x="640" y="208" width="492" height="72" rx="16" fill="#FFFFFF" stroke="#E3D6C0" stroke-dasharray="6 5"/>
-    <text x="664" y="238" font-size="19" fill="#3A332A">wf-&lt;名字&gt; / SKILL.md + playbook.md</text>
-    <text x="664" y="264" font-size="17" fill="#8A8071">阶段顺序 · 习惯红线 · 停止点 · 依赖清单</text>
+    <rect x="640" y="204" width="492" height="100" rx="16" fill="#FFFFFF" stroke="#E3D6C0" stroke-dasharray="6 5"/>
+    <text x="664" y="236" font-size="20" fill="#3A332A">wf-&lt;名字&gt; / SKILL.md + playbook.md</text>
+    <text x="664" y="264" font-size="18" fill="#8A8071">阶段顺序 · 习惯红线 · 停止点 · 依赖清单</text>
+    <text x="664" y="292" font-size="18" fill="#8A4D0C">确定、重复的步骤进 scripts/,只回读一行结论</text>
   </g>
 </svg>
