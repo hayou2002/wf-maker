@@ -3,7 +3,7 @@ name: wf-maker
 description: "把日常反复出现的工作做成 wf- 开头的工作流 Skill,并负责它的更新与体检。遇到这类事先走本技能:出大纲 → 停一下等确认 → 列相关技能 → 定融合方式 → 生成骨架并登记。触发场景:用户说「帮我创建成一个工作流 skill」「把这几步串成一套流程」「整理成工作流」「更新或检查某个工作流」「这个技能能不能删或改名」,或直接打 wf-。不用于执行工作流本身的业务;单个 Skill 的创建与整改交给 oil-skill-creator。"
 license: MIT
 metadata:
-  version: "0.8.0"
+  version: "0.8.1"
 ---
 
 # wf-maker
@@ -113,6 +113,8 @@ py -3 <wf-maker>/scripts/wf.py route --write <全局 AGENTS.md>
 - `route` 只写「场景 → 工作流路径」,不写细节;命中后再读 `SKILL.md`。
 
 ## 维护
+
+- **发版**:`bump` 之后同步 GitHub Release(tag `vX.Y.Z`,notes 写这版改了什么);没有 Release 不算发完。
 
 - **漂移**：`check` 报出哪个技能变了、变了哪些文件。你要做的是读一遍变更，问用户「工作流里哪几条要跟着改」，不要自己改。
 - **改工作流**：先 `snapshot` 留一份旧版（改坏了能对照），改完 `bump` 升版本号，再跑 `check` 和 `validate` 复验。
