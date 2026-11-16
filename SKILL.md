@@ -3,7 +3,7 @@ name: wf-maker
 description: "把日常反复出现的工作做成 wf- 开头的工作流 Skill,并负责它的更新与体检。遇到这类事先走本技能:出大纲 → 停一下等确认 → 列相关技能 → 定融合方式 → 生成骨架并登记。触发场景:用户说「帮我创建成一个工作流 skill」「把这几步串成一套流程」「整理成工作流」「更新或检查某个工作流」「这个技能能不能删或改名」,或直接打 wf-。不用于执行工作流本身的业务;单个 Skill 的创建与整改交给 oil-skill-creator。"
 license: MIT
 metadata:
-  version: "0.6.0"
+  version: "0.8.0"
 ---
 
 # wf-maker
@@ -95,16 +95,22 @@ py -3 <wf-maker>/scripts/wf.py link wf-名字 <技能> --provider <插件名> --
 - 一次只登记一项，登记完念一句结果，别批量做完才汇报。
 - 字段含义和写作要求见 [workflow-format.md](references/workflow-format.md)；确定、重复、可验证的步骤按它的「脚本与检测器」落成 `scripts/` 里的脚本，不要写成长篇文字步骤。
 
+- 新工作流补 `sources.json` 的 `route`:一句场景关键词,供 `wf.py route` 生成全局路由。
+- 需要用户本人定的事(用哪个 CLI、哪个模型、哪个路径),用 `--config "要定什么" --config-where "记在哪"` 登记;结果写进工作流 `habits.md` 或本机偏好,不改上游技能文件。
+
 ### 5. 自检收尾
 
 ```bash
 py -3 <wf-maker>/scripts/wf.py check wf-名字
 py -3 <wf-maker>/scripts/wf.py validate wf-名字
+py -3 <wf-maker>/scripts/wf.py route --write <全局 AGENTS.md>
 ```
 
 - `check` 报大纲缺项和技能漂移；`validate` 借用 oil-skill-creator 的校验器查结构。
 - 大纲没补完就还是 `draft`，不要对用户说「做好了」。
 - 收尾时列出这份工作流接下来可以补哪几件事，最多三条。
+
+- `route` 只写「场景 → 工作流路径」,不写细节;命中后再读 `SKILL.md`。
 
 ## 维护
 

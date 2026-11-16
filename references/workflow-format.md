@@ -164,6 +164,7 @@ wf-<名字>/
 {
   "workflow": "wf-例子",
   "title": "例子",
+  "route": "一句话场景关键词,供全局路由使用",
   "status": "draft",
   "created": "2026-01-01",
   "updated": "2026-01-01",
@@ -177,7 +178,10 @@ wf-<名字>/
       "digest": "sha256:…",
       "files": { "SKILL.md": "sha256:…" },
       "uses": "阶段 2：写方案",
-      "credentials": "需要什么、放在哪"
+      "credentials": "需要什么、放在哪",
+      "config": "需要用户本人定什么",
+      "config_where": "~/.oil-dev/preferences.md",
+      "config_status": "needs-setup"
     }
   ]
 }
@@ -190,6 +194,11 @@ wf-<名字>/
 - 文件多过 60 个时只存 `file_count`，不存逐文件哈希，输出仍然够用。
 
 手工改 `sources.json` 后跑一次 `wf.py env` 刷新清单。
+
+- `route`:一句场景关键词,`wf.py route` 用它生成全局 `AGENTS.md` 的「场景 → 工作流」列表。不写长描述。
+- `config` / `config_where` / `config_status`:需要用户本人配置的事项、记在哪、是否已完成。`config_status` 只写 `needs-setup` 或 `done`;结果写进工作流 `habits.md`、本机偏好或项目 `AGENTS.md`,不改上游技能文件。
+
+- 工作流级的同类字段放在 `sources.json` 顶层,用 `wf.py config <工作流> --needs "..." --where "..."` 登记;环境清单里渲染成 `(工作流)` 一行。
 
 ## 内置副本的规矩
 

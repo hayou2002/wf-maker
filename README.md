@@ -14,12 +14,13 @@
 | 「更新 / 检查某个工作流」 | 维护:报出依赖漂移和脚本过时,再按流程改 |
 | 「这个技能能不能删 / 改名」 | 体检:反查它被哪些工作流引用,给出影响再动手 |
 
-## 四条原则
+## 五条原则
 
 1. **只登记引用,不抄正文。** 原技能更新后工作流照旧生效;真变了会报出来,由你决定改哪几条。
 2. **大纲先给人看。** 先出大纲、停下等确认,再填细节。不替你把流程定死。
 3. **确定的事交给脚本。** 重复、确定、可验证的步骤落进 `scripts/`,运行时只回读一行「结论 + 退出码」;旧了就按更新流程修,不靠人天天盯着。
 4. **关键动作先问。** 新建和改工作流直接做;隐藏技能、删除、覆盖、改技能管理器勾选,先说影响再等确认。
+5. **全局只留一行路由。** `wf.py route` 只写「场景 → 工作流路径」;细节留在工作流自己的 `SKILL.md`。
 
 ## 生成的工作流长这样
 
@@ -48,7 +49,9 @@ py -3 scripts/wf.py scan --match "设计 图标"   # 按关键词粗筛本机技
 py -3 scripts/wf.py new wf-xxx --title "标题"
 py -3 scripts/wf.py new wf-xxx --with-sops   # 需要场景 SOP 时才加
 py -3 scripts/wf.py link wf-xxx oil-plan --uses "阶段 2:定档"
+py -3 scripts/wf.py link wf-xxx oil-delegate --config "委派给哪个 CLI" --config-where "~/.oil-dev/preferences.md"
 py -3 scripts/wf.py bundle wf-xxx 自建技能 --uses "阶段 3"
+py -3 scripts/wf.py route --write <全局 AGENTS.md>   # 只写「场景 → 工作流」
 py -3 scripts/wf.py check                 # 漂移检查 + 大纲缺项
 py -3 scripts/wf.py validate wf-xxx       # 结构静态校验
 py -3 scripts/wf.py links oil-plan        # 反查:谁在用它

@@ -474,7 +474,42 @@ def render_env(wf_dir: Path, data: dict) -> tuple[str, list[str]]:
                 f"排除 {len(bundle.get('excluded', []))} 个凭据文件，"
                 f"改写 {bundle.get('rewrites', 0)} 处本机绝对路径"
             )
+    configured = []
+    if data.get("config"):
+        configured.append(
+            {
+                "name": "(工作流)",
+                "config": data["config"],
+                "config_where": data.get("config_where", "~/.oil-dev/preferences.md"),
+                "config_status": data.get("config_status", "needs-setup"),
+            }
+        )
+    configured += [item for item in data["sources"] if item.get("config")]
     lines += [
+        "",
+        "## 自定义配置",
+        "",
+        "第一次用到下面这些技能或工作流时,先问用户一次,再把结果记到对应位置;不改技能文件,不记密钥值。",
+        "",
+        *(
+            [
+                "| 技能 | 需要你定的事 | 记在哪 | 状态 |",
+                "| --- | --- | --- | --- |",
+                *[
+                    "| {name} | {need} | {where} | {status} |".format(
+                        name=item.get("name", ""),
+                        need=item.get("config", ""),
+                        where=item.get("config_where", "~/.oil-dev/preferences.md"),
+                        status="已完成" if item.get("config_status") == "done" else "待配置",
+                    )
+                    for item in configured
+                ],
+            ]
+            if configured
+            else [
+                "- 暂无登记。需要用户本人配置时,用 `wf.py config <工作流> --needs \"要定什么\" --where \"记在哪\"`(工作流级)或 `wf.py link ... --config ...`(技能级)登记。"
+            ]
+        ),
         "",
         "## 凭据与配置",
         "",
@@ -495,7 +530,8 @@ def render_env(wf_dir: Path, data: dict) -> tuple[str, list[str]]:
         "",
         "1. 按上表逐项安装或确认技能已就位。",
         "2. 用 `wf.py check <工作流>` 核对每个技能的版本是否和登记时一致。",
-        "3. 凭据按「凭据与配置」一节自行准备，不要写进本目录。",
+        "3. 按「自定义配置」逐项确认；待配置的先问用户，不要替用户选。",
+        "4. 凭据按「凭据与配置」一节自行准备，不要写进本目录。",
         "",
     ]
     return "\n".join(lines), plan
@@ -564,6 +600,7 @@ def cmd_new(args) -> int:
     data = {
         "workflow": name,
         "title": title,
+        "route": "",
         "status": "draft",
         "created": today(),
         "updated": today(),
@@ -581,6 +618,7 @@ def cmd_new(args) -> int:
         )
         return 0
     print(f"已创建 {target}")
+    print("补完 sources.json 里的 route 一行,再跑 `wf.py route --write <全局 AGENTS.md>` 更新技能路由。")
     print("下一步：先补 references/playbook.md 的 SOP 大纲，再登记技能依赖。")
     if with_sops:
         print("场景 SOP 骨架在 references/sops/；默认不加具体场景，用户点名后再补。")
@@ -765,6 +803,21 @@ def cmd_link(args) -> int:
         "recorded": today(),
         "uses": args.uses or "",
     }
+    config = getattr(args, "config", None)
+    if config:
+        payload["config"] = config
+    elif entry is not None and entry.get("config"):
+        payload["config"] = entry["config"]
+    config_where = getattr(args, "config_where", None)
+    if config_where:
+        payload["config_where"] = config_where
+    elif entry is not None and entry.get("config_where"):
+        payload["config_where"] = entry["config_where"]
+    config_status = getattr(args, "config_status", None)
+    if config_status:
+        payload["config_status"] = config_status
+    elif entry is not None and entry.get("config_status"):
+        payload["config_status"] = entry["config_status"]
     digest = ""
     if record is not None and mode != "inline":
         digest, files = skill_digest(Path(record["path"]))
@@ -793,6 +846,30 @@ def cmd_link(args) -> int:
         print(f"当时哈希：{digest}")
     if args.provider:
         print(f"来源记为插件 {args.provider}：只登记来源与用途，不比对哈希。")
+    return 0
+
+
+def cmd_config(args) -> int:
+    wf_dir = need_wf(args.workflow)
+    data = load_sources(wf_dir)
+    if args.clear:
+        for key in ("config", "config_where", "config_status"):
+            data.pop(key, None)
+        write_sources(wf_dir, data)
+        refresh_env(wf_dir, quiet=True)
+        print(f"已清除 {data['workflow']} 的自定义配置。")
+        return 0
+    if args.needs is not None:
+        data["config"] = args.needs
+    if args.where is not None:
+        data["config_where"] = args.where
+    if args.status is not None:
+        data["config_status"] = args.status
+    write_sources(wf_dir, data)
+    refresh_env(wf_dir, quiet=True)
+    print(f"已登记 {data['workflow']} 的自定义配置。")
+    print(f"需要定:{data.get('config', '')}")
+    print(f"记在:{data.get('config_where', '')}({data.get('config_status', 'needs-setup')})")
     return 0
 
 
@@ -943,6 +1020,77 @@ def cmd_env(args) -> int:
         print("可执行的恢复命令：")
         for line in plan:
             print(f"  {line}")
+    return 0
+
+
+ROUTER_BEGIN = "<!-- wf-router:begin -->"
+ROUTER_END = "<!-- wf-router:end -->"
+
+
+def route_summary(wf_dir: Path) -> str:
+    data = load_sources(wf_dir)
+    skill_text = read_text(wf_dir / "SKILL.md") or ""
+    fields = parse_frontmatter(skill_text)
+    summary = str(data.get("route") or fields.get("route") or "").strip()
+    if not summary:
+        description = fields.get("description", "")
+        for marker in ("触发场景", "不要用于"):
+            cut = description.find(marker)
+            if cut > 0:
+                description = description[:cut]
+        summary = description.strip().rstrip("。;,. ")
+        if len(summary) > 48:
+            summary = summary[:48].rstrip() + "…"
+    title = str(data.get("title") or fields.get("name") or wf_dir.name)
+    label = summary or title
+    return f"- {label} → `{wf_dir / 'SKILL.md'}`"
+
+
+def render_router() -> str:
+    workflows: dict[str, Path] = {}
+    for wf_dir in list_workflows():
+        workflows.setdefault(wf_dir.name, wf_dir)
+    lines = [
+        ROUTER_BEGIN,
+        "## 技能路由",
+        "",
+        "命中下面场景,先读对应 `SKILL.md`,再动手;同一件事只走一条。",
+        "",
+    ]
+    for name in sorted(workflows):
+        lines.append(route_summary(workflows[name]))
+    maker = find_skill("wf-maker")
+    if maker is not None:
+        maker_path = str(Path(maker["path"]) / "SKILL.md")
+        lines.append(
+            f"- 新建或维护工作流 skill、判断技能能否删 → `{maker_path}`"
+        )
+    if not workflows:
+        lines.append("- (还没有工作流)")
+    lines += ["", ROUTER_END]
+    return "\n".join(lines)
+
+
+def cmd_route(args) -> int:
+    block = render_router()
+    if args.json:
+        print(json.dumps({"text": block}, ensure_ascii=False, indent=2))
+        return 0
+    if not args.write:
+        print(block)
+        return 0
+    target = Path(args.write).expanduser()
+    text = target.read_text(encoding="utf-8") if target.exists() else ""
+    if ROUTER_BEGIN in text and ROUTER_END in text:
+        start = text.index(ROUTER_BEGIN)
+        end = text.index(ROUTER_END) + len(ROUTER_END)
+        updated = text[:start] + block + text[end:]
+    else:
+        separator = "\n\n" if text.strip() else ""
+        updated = text.rstrip() + separator + block + "\n"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(updated, encoding="utf-8")
+    print(f"已写入 {target}")
     return 0
 
 
@@ -1328,7 +1476,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     link.add_argument("--uses", help="在哪一步用它")
     link.add_argument("--credentials", help="需要什么凭据、放在哪（不写值）")
+    link.add_argument("--config", help="需要用户本人定什么(只写事项,不写值)")
+    link.add_argument("--config-where", help="配置结果记在哪,例如 ~/.oil-dev/preferences.md 或项目 AGENTS.md")
+    link.add_argument("--config-status", choices=["needs-setup", "done"], help="这项自定义配置的状态")
     link.set_defaults(func=cmd_link)
+
+    config = sub.add_parser("config", help="登记工作流级自定义配置")
+    config.add_argument("workflow")
+    config.add_argument("--needs", help="需要用户本人定什么")
+    config.add_argument("--where", help="记在哪")
+    config.add_argument("--status", choices=["needs-setup", "done"])
+    config.add_argument("--clear", action="store_true", help="清除工作流级自定义配置")
+    config.set_defaults(func=cmd_config)
 
     unlink = sub.add_parser("unlink", help="移除一个引用")
     unlink.add_argument("workflow")
@@ -1352,6 +1511,10 @@ def build_parser() -> argparse.ArgumentParser:
     env.add_argument("workflow")
     env.add_argument("--install-plan", action="store_true", help="附带恢复命令")
     env.set_defaults(func=cmd_env)
+
+    route = sub.add_parser("route", help="生成或更新全局 AGENTS.md 的技能路由段")
+    route.add_argument("--write", help="写入指定的 AGENTS.md;省略则只打印")
+    route.set_defaults(func=cmd_route)
 
     show = sub.add_parser("show", help="列出工作流的依赖与解析后的路径")
     show.add_argument("workflow")
