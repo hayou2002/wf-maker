@@ -3,7 +3,7 @@ name: wf-maker
 description: "把日常反复出现的工作做成 wf- 开头的工作流 Skill,并负责它的更新与体检。遇到这类事先走本技能:出大纲 → 停一下等确认 → 列相关技能 → 定融合方式 → 生成骨架并登记。触发场景:用户说「帮我创建成一个工作流 skill」「把这几步串成一套流程」「整理成工作流」「更新或检查某个工作流」「这个技能能不能删或改名」,或直接打 wf-。不用于执行工作流本身的业务;单个 Skill 的创建与整改交给 oil-skill-creator。"
 license: MIT
 metadata:
-  version: "0.8.1"
+  version: "0.8.2"
 ---
 
 # wf-maker

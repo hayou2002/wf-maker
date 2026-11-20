@@ -169,6 +169,16 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     return fields
 
 
+def skill_version(path: Path) -> str:
+    """读取 SKILL.md 里 metadata.version 的值。"""
+    text = read_text(path / "SKILL.md") or ""
+    match = re.search(
+        r"(?ms)^metadata:\s*\n(?:[ \t]+.*\n)*?[ \t]+version:\s*[\"']?([^\"'\n]+)",
+        text,
+    )
+    return match.group(1).strip() if match else ""
+
+
 def read_text(path: Path) -> str | None:
     try:
         return path.read_text(encoding="utf-8")
@@ -428,6 +438,7 @@ def install_command(entry: dict) -> str:
 def render_env(wf_dir: Path, data: dict) -> tuple[str, list[str]]:
     rows: list[str] = []
     plan: list[str] = []
+    roots = discover_roots()
     lines: list[str] = [
         f"# {data.get('workflow', wf_dir.name)} 环境清单",
         "",
@@ -437,13 +448,15 @@ def render_env(wf_dir: Path, data: dict) -> tuple[str, list[str]]:
         "",
         "## 技能依赖",
         "",
-        "| 技能 | 关系 | 来源 | 安装方式 |",
-        "| --- | --- | --- | --- |",
+        "| 技能 | 版本 | 关系 | 来源 | 安装方式 |",
+        "| --- | --- | --- | --- | --- |",
     ]
     if not data["sources"]:
         lines.append("| （尚未登记） | | | |")
     for entry in data["sources"]:
         source = entry.get("source", {})
+        root = roots.get(source.get("root") or "")
+        version = skill_version(root / source["rel"]) if root and source.get("rel") else ""
         label = source.get("kind", "")
         if source.get("kind") == "github":
             if source.get("repo"):
@@ -459,8 +472,9 @@ def render_env(wf_dir: Path, data: dict) -> tuple[str, list[str]]:
         else:
             label = "本机目录"
         lines.append(
-            "| {name} | {relation} | {source} | {install} |".format(
+            "| {name} | {version} | {relation} | {source} | {install} |".format(
                 name=entry.get("name", ""),
+                version=version or "—",
                 relation=RELATION_LABELS.get(entry.get("mode", ""), entry.get("mode", "")),
                 source=label,
                 install=install_command(entry),
